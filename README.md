@@ -1,4 +1,4 @@
-# Python Programming for Public Health Analytics
+# Public Health Analytics — Python
 
 *By Aly Drame, MD, MPH, MBA.* The Python (pandas / numpy / matplotlib / seaborn) counterpart to my SAS and R public-health programming repos — the same Emory AEPI537D course datasets (synthetic / course-provided; no real patient or program records), worked from import through reporting.
 
