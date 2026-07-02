@@ -1,15 +1,12 @@
 # Python Programming for Public Health Analytics
 
-**Author:** Aly Drame, MD, MPH, MBA
-**Language:** Python (pandas / numpy / matplotlib / seaborn)
-**Domain:** HIV surveillance, immunization compliance, epidemiologic data analysis
-**Data:** Course datasets from AEPI537D — Intro to SAS Programming, Emory Rollins School of Public Health (converted to CSV for Python compatibility)
+*By Aly Drame, MD, MPH, MBA.* The Python (pandas / numpy / matplotlib / seaborn) counterpart to my SAS and R public-health programming repos — the same Emory AEPI537D course datasets (synthetic / course-provided; no real patient or program records), worked from import through reporting.
 
 ---
 
 ## Overview
 
-This repository applies core Python programming skills to real public health datasets, organized by the natural data analysis workflow. It is the Python counterpart to [sas-public-health-analytics](https://github.com/Drame-social/sas-public-health-analytics) and [R-Practice](https://github.com/Drame-social/R-Practice), performing equivalent analyses using idiomatic Python (pandas / numpy / seaborn / matplotlib).
+This repository applies core Python programming skills to educational public health datasets (synthetic / course-provided; no real patient or program records), organized by the natural data analysis workflow. It is the Python counterpart to [sas-public-health-analytics](https://github.com/Drame-social/sas-public-health-analytics) and [R-Practice](https://github.com/Drame-social/R-Practice), performing equivalent analyses using idiomatic Python (pandas / numpy / seaborn / matplotlib).
 
 ---
 
