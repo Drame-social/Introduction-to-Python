@@ -60,7 +60,7 @@ plt.close()
 #      missing before plotting. The file has no county boundaries, so this
 #      section ranks counties instead of drawing a choropleth map.
 # ----------------------------------------------------------------------------
-aidsvu = aidsvu.copy()
+aidsvu = aidsvu.dropna(subset=["county_name"]).copy()   # drop the blank last row
 for col in ["newdx_rate", "newdx_cases"]:
     aidsvu.loc[aidsvu[col] < 0, col] = pd.NA
 reported = aidsvu.dropna(subset=["newdx_rate"])
