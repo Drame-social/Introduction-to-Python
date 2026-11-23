@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Sorting and creating lag variables with groupby().shift(), group-level aggregation with groupby().agg(), wide-to-long reshaping with pd.melt(), long-to-wide with pivot_table(), and selecting first/last records per subject.
+Working with several visits per patient: visits per patient, first visit (SAS FIRST.), visit numbers, lagged values and change, per-patient summaries merged back to baseline, and reshaping wide to long and back (PROC TRANSPOSE).
 
 ## Files
 
@@ -12,21 +12,17 @@ Sorting and creating lag variables with groupby().shift(), group-level aggregati
 
 ## Datasets Used
 
-mod9.csv, mod8_c.csv
+patients.csv, mod8_c.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-# Lag within group
-df = df.sort_values(["studyid","visitdate"])
-df["prev_vl"] = df.groupby("studyid")["vl"].shift(1)
+patients = patients.sort_values(["id", "visdate"])
+first_visit = patients.groupby("id").head(1)                      # IF FIRST.id
+patients["prev_weight"] = patients.groupby("id")["weight"].shift(1)   # LAG
 
-# Group summary
-summary = df.groupby("studyid").agg(
-    n_visits=("visitdate","count"),
-    mean_vl =("vl","mean")).reset_index()
-
-# Wide → Long
-long_df = df.melt(id_vars=id_cols, value_vars=visit_cols,
-                  var_name="visit", value_name="result")
+per_patient = patients.groupby("id").agg(totvisit=("visdate", "count"),
+                                         avgblds=("allblds", "mean"))
 ```
