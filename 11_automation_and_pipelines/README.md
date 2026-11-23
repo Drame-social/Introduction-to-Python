@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Writing reusable analysis functions with **kwargs-style flexibility, running functions across multiple outcomes in a loop, batch processing datasets with list comprehensions, and composing full end-to-end pipeline functions.
+Parameterized functions as equivalents of SAS macros, loops over datasets (%DO), and a small pipeline function that reads, cleans, summarizes, and saves in one call.
 
 ## Files
 
@@ -12,18 +12,17 @@ Writing reusable analysis functions with **kwargs-style flexibility, running fun
 
 ## Datasets Used
 
-final_demo.csv, final_clin.csv, mod3lab.csv, mod4.csv, mod6.csv, mod9.csv
+final_demo.csv, final_clin.csv, mod3lab.csv, mod4.csv, mod6.csv, mod9.csv, patients.csv, screener_data.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-def summarize_cohort(df, group_col, outcome_col):
-    return (df.groupby(group_col)[outcome_col]
-              .agg(n="count",
-                   mean=lambda x: round(x.mean(),2))
-              .reset_index())
+def summarize_by(df, group_col, outcome_col):
+    g = df.groupby(group_col, dropna=False)[outcome_col]
+    return pd.DataFrame({"n": g.count(), "mean": g.mean(), "sd": g.std()})
 
-# Batch apply
-results = [run_vl_pipeline(f)
-           for f in ["mod3lab.csv","mod9.csv"]]
+summarize_by(demo_clin, "hlevel", "bleeds")
+run_screening_pipeline("screener_data.csv", "screening_by_site_month.csv")
 ```
