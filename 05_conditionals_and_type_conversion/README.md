@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Multi-condition logic with np.select(), binary indicators from boolean expressions, type conversions with astype() and pd.to_datetime(), and handling missing values with isna(), fillna(), and dropna().
+IF-THEN-ELSE logic with np.where(), ordered ELSE IF chains with np.select(), converting text to numbers and dates (SAS INPUT), converting numbers to text (SAS PUT), and missing values in conditions.
 
 ## Files
 
@@ -12,17 +12,18 @@ Multi-condition logic with np.select(), binary indicators from boolean expressio
 
 ## Datasets Used
 
-final_clin.csv
+atlgrades.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-import numpy as np
+grades["course"] = np.where(grades["grade"] >= 60, "Pass", "Fail")
 
-conditions = [df["vl"] < 200, df["vl"] < 1000, df["vl"] < 100000]
-choices    = ["Suppressed", "Low", "Moderate"]
-df["vl_category"] = np.select(conditions, choices, default="High")
+conditions = [grades["grade"] >= 90, grades["grade"] >= 80,
+              grades["grade"] >= 70, grades["grade"] >= 60]
+grades["ltrgrade"] = np.select(conditions, ["A", "B", "C", "D"], default="F")
 
-df["suppressed"] = (df["vl"] < 200).astype(int)
-df["cd4_imputed"] = df["cd4"].fillna(df["cd4"].mean())
+pd.to_datetime("01-11-2019", format="%m-%d-%Y")   # INPUT(x, mmddyy10.)
 ```
