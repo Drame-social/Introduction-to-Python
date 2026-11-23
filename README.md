@@ -47,7 +47,7 @@ This repository applies core Python programming skills to educational practice d
 
 | File | Rows | Cols | Description |
 |------|------|------|-------------|
-| aidsvu_2016_newdx_county.csv | 160 | 7 | HIV new diagnoses by Georgia county, 2016 (AIDSVu; negative values are suppression codes) |
+| aidsvu_2016_newdx_county.csv | 160 | 7 | HIV new diagnoses for 159 Georgia counties, 2016 (AIDSVu; last row is blank; negative values are suppression codes) |
 | atlgrades.csv | 26 | 4 | Student grade records |
 | cohort1516.csv | 204 | 6 | Cohort enrollment, 2015–16 |
 | cohort1617.csv | 152 | 6 | Cohort enrollment, 2016–17 |
