@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Filtering rows with boolean indexing, selecting columns by name, left/inner/anti-joins using merge() with indicator=True, and sorting with sort_values().
+Merging by ID with merge(), checking match status with indicator=True, keeping only records from one side (SAS IN=), subsetting rows and columns, anti-joins, and sorting.
 
 ## Files
 
@@ -12,20 +12,17 @@ Filtering rows with boolean indexing, selecting columns by name, left/inner/anti
 
 ## Datasets Used
 
-mod3lab.csv, final_demo.csv, final_clin.csv
+phase2.csv, labs.csv, mod3lab.csv, final_demo.csv, final_clin.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-# Filter rows
-hiv_pos = mod3lab[mod3lab["hivstatus"] == 1]
+p2_labs = phase2.merge(labs, on="studyid", how="left")          # MERGE ... IF A;
+females = mod3lab[mod3lab["sex"] == "female"]                    # WHERE
+lifestyle = mod3lab[["studyid", "sex", "smoke", "sleep"]]        # KEEP=
 
-# Anti-join — unmatched records
-merged = final_demo.merge(final_clin[["studyid"]], on="studyid",
-                          how="left", indicator=True)
-unmatched = merged[merged["_merge"] == "left_only"]
-
-# Sort
-sorted_df = mod3lab.sort_values(["studyid", "visitdate"],
-                                 ascending=[True, False])
+check = final_demo.merge(final_clin[["id"]], on="id", how="left", indicator=True)
+unmatched = check[check["_merge"] == "left_only"]
 ```
