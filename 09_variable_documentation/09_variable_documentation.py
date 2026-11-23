@@ -1,55 +1,75 @@
 # =============================================================================
 # Phase 09 — Variable Documentation
-# Python equivalent of SAS Module 6 (reordered after transformations)
+# Python equivalent of SAS Module 6 (labels, formats, codebook)
 # Libraries: pandas
 # =============================================================================
-import pandas as pd
 import os
+import pandas as pd
 
 DATA_PATH = "./data"
+OUTPUTS_PATH = "./outputs"
+os.makedirs(OUTPUTS_PATH, exist_ok=True)
 
 mod6 = pd.read_csv(os.path.join(DATA_PATH, "mod6.csv"))
-
-# ----------------------------------------------------------------------------
-# 9.1 Rename columns — equivalent to SAS RENAME=
-# ----------------------------------------------------------------------------
 mod6.columns = mod6.columns.str.lower().str.strip()
 
-rename_map = {}
-if "pt_id"  in mod6.columns: rename_map["pt_id"]  = "studyid"
-if "gender" in mod6.columns: rename_map["gender"] = "sex"
-if rename_map:
-    mod6 = mod6.rename(columns=rename_map)
-
 # ----------------------------------------------------------------------------
-# 9.2 Variable labels as a metadata dictionary — equivalent to SAS LABEL
+# 9.1 Variable labels as a metadata dictionary — equivalent to SAS LABEL
+#     Labels below come from how each variable is derived or labeled in the
+#     SAS version of this module. Variables without a documented meaning are
+#     left unlabeled rather than guessed.
 # ----------------------------------------------------------------------------
 var_labels = {
-    "studyid":   "Unique study participant identifier",
-    "age":       "Age in years at enrollment",
-    "sex":       "Biological sex (1=Male, 2=Female)",
-    "race":      "Self-reported race/ethnicity",
-    "vl":        "HIV viral load (copies/mL)",
-    "cd4":       "CD4+ T-cell count (cells/mm3)",
-    "visitdate": "Date of clinic visit"
+    "studyid":  "Participant identifier",
+    "sex1":     "Gender (numeric code)",
+    "wt3lev":   "Weight category (3 levels)",
+    "wt2lev":   "Weight category (2 levels)",
+    "bd":       "Birth date (SAS date value)",
+    "surveydt": "Survey date",
+    "weight":   "Weight (lb)",
+    "heightft": "Height, feet component",
+    "heightin": "Height, inches component",
+    "birthlb":  "Birth weight, pounds component",
+    "birthoz":  "Birth weight, ounces component",
+    "bw_oz":    "Birth weight (oz)",
+    "bw_gm":    "Birth weight (g)",
+    "bw_gm1":   "Low birth weight (<=2500 g)",
+    "ht_in":    "Height (in)",
+    "weightkg": "Weight (kg)",
+    "heightm":  "Height (m)",
+    "bmi":      "Body mass index (kg/m2)",
+    "calc_age": "Exact age at survey (years)",
+    "entryage": "Participant age at enrollment",
+    "kids":     "Total number of kids in household",
 }
 
 # ----------------------------------------------------------------------------
-# 9.3 Value labels (categorical mapping) — equivalent to SAS FORMAT
+# 9.2 Value labels — equivalent to SAS PROC FORMAT
 # ----------------------------------------------------------------------------
-if "sex" in mod6.columns:
-    mod6["sex_label"] = mod6["sex"].map({1: "Male", 2: "Female"})
+yesno = {0: "No", 1: "Yes"}
+for col in ["smoke", "plane", "vitamin"]:
+    mod6[f"{col}_label"] = mod6[col].map(yesno)
+
+mod6["age_group"] = pd.cut(mod6["entryage"], bins=[14, 24, 29, 100],
+                           labels=["<25", "25-29", "30+"])
+
+print("--- Smoking by weight category (formatted) ---")
+print(pd.crosstab(mod6["smoke_label"], mod6["wt3lev"]), "\n")
+print("--- Age group by smoking ---")
+print(pd.crosstab(mod6["age_group"], mod6["smoke_label"]), "\n")
 
 # ----------------------------------------------------------------------------
-# 9.4 Codebook — equivalent to SAS PROC CONTENTS + PROC FORMAT listing
+# 9.3 Codebook — equivalent to SAS PROC CONTENTS
 # ----------------------------------------------------------------------------
-print("--- Variable Codebook ---")
-print(f"{'Variable':<22} {'Type':<12} {'Missing':>8}  Label")
-print("-" * 70)
-for col in mod6.columns:
-    dtype   = str(mod6[col].dtype)
-    missing = mod6[col].isna().sum()
-    label   = var_labels.get(col, "(no label)")
-    print(f"  {col:<20} {dtype:<12} {missing:>8}  {label}")
+codebook = pd.DataFrame({
+    "variable": mod6.columns,
+    "type":     [str(mod6[c].dtype) for c in mod6.columns],
+    "n_missing": [int(mod6[c].isna().sum()) for c in mod6.columns],
+    "n_unique": [int(mod6[c].nunique()) for c in mod6.columns],
+    "label":    [var_labels.get(c, "") for c in mod6.columns],
+})
+print(codebook.to_string(index=False))
 
-mod6.to_csv(os.path.join(DATA_PATH, "mod6_documented.csv"), index=False)
+codebook.to_csv(os.path.join(OUTPUTS_PATH, "mod6_codebook.csv"), index=False)
+mod6.to_csv(os.path.join(OUTPUTS_PATH, "mod6_documented.csv"), index=False)
+print("\nSaved outputs/mod6_codebook.csv and outputs/mod6_documented.csv")
