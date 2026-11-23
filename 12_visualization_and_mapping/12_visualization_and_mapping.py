@@ -1,98 +1,79 @@
 # =============================================================================
 # Phase 12 — Visualization & Mapping
-# Python equivalent of SAS Module 12
-# Libraries: pandas, matplotlib, seaborn, (optional: plotly, geopandas)
+# Python equivalent of SAS Module 12 (SGPLOT and county-level HIV data)
+# Libraries: pandas, matplotlib, seaborn
 # =============================================================================
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
-import seaborn as sns
 import os
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
-DATA_PATH    = "./data"
+DATA_PATH = "./data"
 OUTPUTS_PATH = "./outputs"
 os.makedirs(OUTPUTS_PATH, exist_ok=True)
-
-sns.set_theme(style="whitegrid", font_scale=1.1)
+sns.set_theme(style="whitegrid", font_scale=1.0)
 
 final_demo = pd.read_csv(os.path.join(DATA_PATH, "final_demo.csv"))
 final_clin = pd.read_csv(os.path.join(DATA_PATH, "final_clin.csv"))
-aidsvu     = pd.read_csv(os.path.join(DATA_PATH, "aidsvu_2016_newdx_county.csv"))
-
-demo_clin = final_demo.merge(final_clin, on="studyid", how="left")
-demo_clin["suppressed"] = demo_clin["vl"] < 200
-demo_clin["sex_label"]  = demo_clin["sex"].map({1: "Male", 2: "Female"})
-demo_clin["age_group"]  = pd.cut(
-    demo_clin["age"],
-    bins   = [0, 24, 34, 44, 54, np.inf],
-    labels = ["<25", "25-34", "35-44", "45-54", "55+"]
-)
+aidsvu = pd.read_csv(os.path.join(DATA_PATH, "aidsvu_2016_newdx_county.csv"))
+demo_clin = final_demo.merge(final_clin, on="id", how="left")
+level_order = ["Mild", "Moderate", "Severe"]
 
 # ----------------------------------------------------------------------------
-# 12.1 Stacked bar — VL suppression by sex
+# 12.1 Grouped bar chart — hlevel by htype (SGPLOT VBAR / GROUP=)
 # ----------------------------------------------------------------------------
-supp_sex = (demo_clin.dropna(subset=["sex_label", "suppressed"])
-              .groupby(["sex_label", "suppressed"])
-              .size().unstack(fill_value=0))
-supp_sex_pct = supp_sex.div(supp_sex.sum(axis=1), axis=0)
-
-fig, ax = plt.subplots(figsize=(6, 4))
-supp_sex_pct.plot(kind="bar", stacked=True,
-                  color=["#d9534f", "#5cb85c"], ax=ax)
-ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-ax.set_title("Viral Load Suppression by Sex")
-ax.set_xlabel("Sex"); ax.set_ylabel("Proportion")
-ax.legend(["Not Suppressed", "Suppressed"], loc="upper right")
-ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+counts = pd.crosstab(demo_clin["hlevel"], demo_clin["htype"]).reindex(level_order)
+ax = counts.plot(kind="bar", figsize=(6, 4), rot=0)
+ax.set_title("Patients by hlevel and htype")
+ax.set_xlabel("hlevel"); ax.set_ylabel("Patients")
 plt.tight_layout()
-plt.savefig(os.path.join(OUTPUTS_PATH, "vl_suppression_by_sex.png"), dpi=150)
+plt.savefig(os.path.join(OUTPUTS_PATH, "hlevel_by_htype.png"), dpi=150)
 plt.close()
 
 # ----------------------------------------------------------------------------
-# 12.2 Histogram — CD4 count distribution
+# 12.2 Histogram — bleeds (SGPLOT HISTOGRAM)
 # ----------------------------------------------------------------------------
 fig, ax = plt.subplots(figsize=(6, 4))
-cd4_data = demo_clin["cd4"].dropna()
-ax.hist(cd4_data, bins=30, color="#337ab7", edgecolor="white")
-ax.axvline(200, color="red", linestyle="--", linewidth=1.5)
-ax.text(215, ax.get_ylim()[1] * 0.85, "CD4=200", color="red", fontsize=9)
-ax.set_title("CD4 Count Distribution")
-ax.set_xlabel("CD4 Count (cells/mm³)"); ax.set_ylabel("Frequency")
+ax.hist(demo_clin["bleeds"].dropna(), bins=30, edgecolor="white")
+ax.set_title("Distribution of bleeds")
+ax.set_xlabel("Bleeds"); ax.set_ylabel("Patients")
 plt.tight_layout()
-plt.savefig(os.path.join(OUTPUTS_PATH, "cd4_distribution.png"), dpi=150)
+plt.savefig(os.path.join(OUTPUTS_PATH, "bleeds_histogram.png"), dpi=150)
 plt.close()
 
 # ----------------------------------------------------------------------------
-# 12.3 Box plot — CD4 by age group
+# 12.3 Box plot — bleeds by hlevel (SGPLOT VBOX / CATEGORY=)
 # ----------------------------------------------------------------------------
-plot_data = demo_clin.dropna(subset=["cd4", "age_group"])
-fig, ax = plt.subplots(figsize=(7, 4))
-sns.boxplot(data=plot_data, x="age_group", y="cd4",
-            palette="Blues", ax=ax)
-ax.set_title("CD4 Count by Age Group")
-ax.set_xlabel("Age Group"); ax.set_ylabel("CD4 Count (cells/mm³)")
+fig, ax = plt.subplots(figsize=(6, 4))
+sns.boxplot(data=demo_clin.dropna(subset=["hlevel", "bleeds"]),
+            x="hlevel", y="bleeds", order=level_order, ax=ax)
+ax.set_title("Bleeds by hlevel")
 plt.tight_layout()
-plt.savefig(os.path.join(OUTPUTS_PATH, "cd4_by_age_group.png"), dpi=150)
+plt.savefig(os.path.join(OUTPUTS_PATH, "bleeds_by_hlevel.png"), dpi=150)
 plt.close()
 
 # ----------------------------------------------------------------------------
-# 12.4 County-level scatter map — AIDSVu new diagnoses (lat/lon proxy)
+# 12.4 County-level HIV new diagnoses, Georgia 2016 (AIDSVu)
+#      Negative values are suppression codes, not rates, so they are set to
+#      missing before plotting. The file has no county boundaries, so this
+#      section ranks counties instead of drawing a choropleth map.
 # ----------------------------------------------------------------------------
-aidsvu.columns = aidsvu.columns.str.lower()
-if "lat" in aidsvu.columns and "lon" in aidsvu.columns:
-    fig, ax = plt.subplots(figsize=(9, 5))
-    sc = ax.scatter(aidsvu["lon"], aidsvu["lat"],
-                    c=aidsvu["rate"], cmap="magma_r",
-                    s=20, alpha=0.7)
-    plt.colorbar(sc, ax=ax, label="Rate per 100,000")
-    ax.set_title("HIV New Diagnoses by County (2016)")
-    ax.set_xlabel("Longitude"); ax.set_ylabel("Latitude")
-    plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUTS_PATH, "hiv_new_dx_county_map.png"), dpi=150)
-    plt.close()
-    print("Map saved.")
-else:
-    print("Note: lat/lon columns not found in aidsvu data — map skipped.")
+aidsvu = aidsvu.copy()
+for col in ["newdx_rate", "newdx_cases"]:
+    aidsvu.loc[aidsvu[col] < 0, col] = pd.NA
+reported = aidsvu.dropna(subset=["newdx_rate"])
+print(f"Counties: {len(aidsvu)}; with a reported rate: {len(reported)}; "
+      f"suppressed: {len(aidsvu) - len(reported)}")
 
-print("All plots saved to outputs/")
+top = reported.nlargest(15, "newdx_rate").sort_values("newdx_rate")
+fig, ax = plt.subplots(figsize=(7, 6))
+ax.barh(top["county_name"], top["newdx_rate"])
+ax.set_title("Highest reported HIV new-diagnosis rates\nGeorgia counties, 2016")
+ax.set_xlabel("Rate per 100,000 (as reported)")
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUTS_PATH, "ga_county_newdx_top15.png"), dpi=150)
+plt.close()
+
+print("Plots saved to outputs/")
