@@ -1,64 +1,74 @@
 # =============================================================================
 # Phase 11 — Automation & Pipelines
 # Python equivalent of SAS Module 11 (Macros)
-# Libraries: pandas, functools
+# Libraries: pandas
 # =============================================================================
-import pandas as pd
 import os
+import pandas as pd
 
 DATA_PATH = "./data"
+OUTPUTS_PATH = "./outputs"
+os.makedirs(OUTPUTS_PATH, exist_ok=True)
 
 # ----------------------------------------------------------------------------
-# 11.1 Reusable function — equivalent to SAS %MACRO
+# 11.1 Reusable function — equivalent to a parameterized SAS %MACRO
 # ----------------------------------------------------------------------------
-def summarize_cohort(df, group_col, outcome_col):
-    """Group-level summary: n, mean, sd, missing count."""
-    return (df.groupby(group_col)[outcome_col]
-              .agg(n="count",
-                   mean=lambda x: round(x.mean(), 2),
-                   sd=lambda x: round(x.std(), 2),
-                   missing=lambda x: x.isna().sum())
-              .reset_index())
+def summarize_by(df, group_col, outcome_col):
+    """Group-level n, mean, SD, and missing count for one numeric outcome."""
+    g = df.groupby(group_col, dropna=False)[outcome_col]
+    return pd.DataFrame({
+        "n":       g.count(),
+        "mean":    g.mean().round(2),
+        "sd":      g.std().round(2),
+        "missing": g.apply(lambda x: int(x.isna().sum())),
+    }).reset_index()
 
-final_clin = pd.read_csv(os.path.join(DATA_PATH, "final_clin.csv"))
+
 final_demo = pd.read_csv(os.path.join(DATA_PATH, "final_demo.csv"))
-demo_clin  = final_demo.merge(final_clin, on="studyid", how="left")
+final_clin = pd.read_csv(os.path.join(DATA_PATH, "final_clin.csv"))
+demo_clin = final_demo.merge(final_clin, on="id", how="left")
 
-print("--- CD4 by Sex ---")
-print(summarize_cohort(demo_clin, "sex", "cd4"))
-
-print("\n--- Viral Load by Sex ---")
-print(summarize_cohort(demo_clin, "sex", "vl"))
+# Call the "macro" with different parameters
+for group_col, outcome_col in [("hlevel", "bleeds"),
+                               ("htype", "bleeds"),
+                               ("htype", "weightkg")]:
+    print(f"--- {outcome_col} by {group_col} ---")
+    print(summarize_by(demo_clin, group_col, outcome_col).to_string(index=False), "\n")
 
 # ----------------------------------------------------------------------------
-# 11.2 Batch process multiple datasets — equivalent to SAS %DO loop
+# 11.2 Loop over datasets — equivalent to a SAS %DO loop
 # ----------------------------------------------------------------------------
-dataset_names = ["mod3lab", "mod4", "mod6", "mod9"]
-dim_report = []
-for name in dataset_names:
+inventory = []
+for name in ["mod3lab", "mod4", "mod6", "mod9", "patients", "final_clin"]:
     df = pd.read_csv(os.path.join(DATA_PATH, f"{name}.csv"))
-    dim_report.append({"dataset": name, "rows": len(df), "cols": len(df.columns)})
-
-print("\n--- Dataset Inventory ---")
-print(pd.DataFrame(dim_report).to_string(index=False))
+    inventory.append({
+        "dataset":      name,
+        "rows":         len(df),
+        "cols":         df.shape[1],
+        "pct_missing":  round(df.isna().mean().mean() * 100, 2),
+    })
+inventory = pd.DataFrame(inventory)
+print("--- Dataset inventory ---")
+print(inventory.to_string(index=False), "\n")
 
 # ----------------------------------------------------------------------------
-# 11.3 Pipeline function — wrap a full analysis into one callable unit
+# 11.3 Pipeline — one function that reads, cleans, summarizes, and saves
 # ----------------------------------------------------------------------------
-def run_vl_pipeline(csv_name):
+def run_screening_pipeline(csv_name, out_name):
     df = pd.read_csv(os.path.join(DATA_PATH, csv_name))
-    if "vl" not in df.columns:
-        return None
-    df = df.dropna(subset=["vl"])
-    df["suppressed"] = df["vl"] < 200
-    return {
-        "dataset":  csv_name,
-        "n":        len(df),
-        "pct_supp": round(df["suppressed"].mean() * 100, 1)
-    }
+    df["Vdatesub"] = pd.to_datetime(df["Vdatesub"], errors="coerce")
+    df["month"] = df["Vdatesub"].dt.to_period("M").astype(str)
+    summary = (df.groupby(["SITE", "month"])
+                 .agg(screened=("id", "count"),
+                      complete=("Vstatus", lambda s: int((s == "Complete").sum())),
+                      eligible=("elig", lambda s: int((s == 1).sum())),
+                      elig_missing=("elig", lambda s: int(s.isna().sum())))
+                 .reset_index())
+    summary.to_csv(os.path.join(OUTPUTS_PATH, out_name), index=False)
+    return summary
 
-results = [run_vl_pipeline(f) for f in ["mod3lab.csv", "mod9.csv"]]
-results = [r for r in results if r]
-
-print("\n--- VL Suppression Pipeline ---")
-print(pd.DataFrame(results).to_string(index=False))
+screening = run_screening_pipeline("screener_data.csv", "screening_by_site_month.csv")
+print("--- Screening by site and month ---")
+print(screening.to_string(index=False))
+inventory.to_csv(os.path.join(OUTPUTS_PATH, "dataset_inventory.csv"), index=False)
+print("\nSaved outputs/screening_by_site_month.csv and outputs/dataset_inventory.csv")
