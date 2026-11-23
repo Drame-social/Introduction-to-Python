@@ -3,46 +3,55 @@
 # Python equivalent of SAS Module 5
 # Libraries: pandas, numpy
 # =============================================================================
-import pandas as pd
-import numpy as np
 import os
+import numpy as np
+import pandas as pd
 
 DATA_PATH = "./data"
+OUTPUTS_PATH = "./outputs"
+os.makedirs(OUTPUTS_PATH, exist_ok=True)
 
-final_clin = pd.read_csv(os.path.join(DATA_PATH, "final_clin.csv"))
-
-# ----------------------------------------------------------------------------
-# 5.1 Multi-condition logic — equivalent to SAS IF-THEN-ELSE / SELECT
-# ----------------------------------------------------------------------------
-conditions = [
-    final_clin["vl"] < 200,
-    final_clin["vl"] < 1000,
-    final_clin["vl"] < 100000
-]
-choices = ["Suppressed", "Low", "Moderate"]
-final_clin["vl_category"] = np.select(conditions, choices, default="High")
+grades = pd.read_csv(os.path.join(DATA_PATH, "atlgrades.csv"))
+grades.columns = grades.columns.str.lower()
 
 # ----------------------------------------------------------------------------
-# 5.2 Binary indicator — equivalent to SAS IF x THEN y = 1
+# 5.1 IF-THEN-ELSE — pass/fail
 # ----------------------------------------------------------------------------
-final_clin["suppressed"]   = (final_clin["vl"] < 200).astype(int)
-final_clin["on_art"]       = final_clin["art_start_date"].notna().astype(int)
-final_clin["missing_cd4"]  = final_clin["cd4"].isna().astype(int)
+grades["course"] = np.where(grades["grade"] >= 60, "Pass", "Fail")
+print(grades["course"].value_counts(), "\n")
 
 # ----------------------------------------------------------------------------
-# 5.3 Type conversion — equivalent to SAS INPUT() and PUT()
+# 5.2 IF-THEN / ELSE IF chain — letter grades
+#     np.select checks conditions in order, like SAS ELSE IF.
+#     (Separate IF statements without ELSE would let later conditions
+#     overwrite earlier ones, which is the common SAS mistake this mirrors.)
 # ----------------------------------------------------------------------------
-final_clin["studyid_str"]  = final_clin["studyid"].astype(str)
-final_clin["art_date_dt"]  = pd.to_datetime(final_clin["art_start_date"], errors="coerce")
+conditions = [grades["grade"] >= 90, grades["grade"] >= 80,
+              grades["grade"] >= 70, grades["grade"] >= 60]
+grades["ltrgrade"] = np.select(conditions, ["A", "B", "C", "D"], default="F")
+grades.loc[grades["grade"].isna(), "ltrgrade"] = np.nan
+print(grades[["name", "grade", "ltrgrade"]].head(), "\n")
+print(pd.crosstab(grades["group"], grades["ltrgrade"]), "\n")
 
 # ----------------------------------------------------------------------------
-# 5.4 Handling missing values
+# 5.3 Character to numeric — equivalent to SAS INPUT() with informats
 # ----------------------------------------------------------------------------
-print(f"Missing CD4 count: {final_clin['cd4'].isna().sum()}")
-final_clin_nomiss = final_clin.dropna(subset=["cd4"])
-print(f"After dropping missing CD4: {len(final_clin_nomiss)}")
+print("'50000'     ->", pd.to_numeric("50000"))
+print("'15%'       ->", float("15%".rstrip("%")) / 100)
+print("'43,000.24' ->", float("43,000.24".replace(",", "")))
+print("'01-11-2019'->", pd.to_datetime("01-11-2019", format="%m-%d-%Y").date(), "\n")
 
-mean_cd4 = final_clin["cd4"].mean()
-final_clin["cd4_imputed"] = final_clin["cd4"].fillna(mean_cd4)
+# ----------------------------------------------------------------------------
+# 5.4 Numeric to character — equivalent to SAS PUT()
+# ----------------------------------------------------------------------------
+grades["grade_txt"] = grades["grade"].map(lambda g: f"{g:.0f}" if pd.notna(g) else "")
+grades["attend_txt"] = grades["attendx"].map({1: "Attended", 0: "Absent"})
+print(grades.dtypes, "\n")
 
-final_clin.to_csv(os.path.join(DATA_PATH, "final_clin_processed.csv"), index=False)
+# ----------------------------------------------------------------------------
+# 5.5 Missing values in conditions
+# ----------------------------------------------------------------------------
+print(f"Missing grades: {grades['grade'].isna().sum()}")
+
+grades.to_csv(os.path.join(OUTPUTS_PATH, "atlgrades_processed.csv"), index=False)
+print("Saved outputs/atlgrades_processed.csv")
