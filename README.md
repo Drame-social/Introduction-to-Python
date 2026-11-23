@@ -3,13 +3,13 @@
 **Author:** Aly Drame, MD, MPH, MBA
 **Language:** Python (pandas / numpy / matplotlib / seaborn)
 **Domain:** HIV surveillance, immunization compliance, epidemiologic data analysis
-**Data:** AEPI537D — Introduction to SAS Programming, Emory Rollins School of Public Health course datasets (authorized for public redistribution; converted to CSV for Python compatibility)
+**Data:** Educational practice datasets and public aggregated county-level HIV data (AIDSVu, 2016), converted from SAS format to CSV for Python compatibility. No real patient-level records.
 
 ---
 
 ## Overview
 
-This repository applies core Python programming skills to publicly redistributable educational course datasets and public aggregated data, organized by the natural data analysis workflow. It is the Python counterpart to [sas-public-health-analytics](https://github.com/Drame-social/sas-public-health-analytics) and [R-Practice](https://github.com/Drame-social/R-Practice), performing equivalent analyses using idiomatic Python (pandas / numpy / seaborn / matplotlib).
+This repository applies core Python programming skills to educational practice datasets and public aggregated data, organized by the natural data analysis workflow. It is the Python counterpart to [sas-public-health-analytics](https://github.com/Drame-social/sas-public-health-analytics) and [R-Practice](https://github.com/Drame-social/R-Practice), performing equivalent analyses using idiomatic Python (pandas / numpy / seaborn / matplotlib).
 
 ---
 
