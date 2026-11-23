@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Creating binned categories with pd.cut(), mapping value labels with .map(), computing value frequencies with value_counts(), parsing dates with pd.to_datetime(), date arithmetic, and extracting year/month from datetime columns.
+Grouping a continuous variable with fixed cut points and with data-driven tertiles, deriving birth weight and BMI, converting SAS date numbers and text dates, and computing age at survey.
 
 ## Files
 
@@ -14,17 +14,15 @@ Creating binned categories with pd.cut(), mapping value labels with .map(), comp
 
 mod4.csv
 
+Derived files are written to `./outputs/`.
+
 ## Key Python Syntax
 
 ```python
-import pandas as pd, numpy as np
+mod4["wt3lev_py"]  = pd.cut(mod4["weight"], bins=[0, 126, 149, np.inf], labels=[0, 1, 2])
+mod4["wt_tertile"] = pd.qcut(mod4["weight"], q=3, labels=[0, 1, 2])   # PROC RANK GROUPS=3
 
-# Categorize age
-df["age_group"] = pd.cut(df["age"],
-    bins   = [0, 17, 34, 49, 64, np.inf],
-    labels = ["<18","18-34","35-49","50-64","65+"])
-
-# Date arithmetic
-df["visitdate_dt"] = pd.to_datetime(df["visitdate"])
-df["visit_year"]   = df["visitdate_dt"].dt.year
+SAS_EPOCH = pd.Timestamp("1960-01-01")
+mod4["birth_date"] = SAS_EPOCH + pd.to_timedelta(mod4["bd"], unit="D")
+mod4["calc_age"] = (pd.to_datetime(mod4["surveydt"]) - mod4["birth_date"]).dt.days / 365.25
 ```
