@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Installing Python and pip, creating virtual environments with venv, installing packages (pandas, numpy, matplotlib, seaborn, openpyxl), using Jupyter notebooks or a script editor, and setting working paths.
+Installing Python and pip, creating virtual environments with venv, installing packages (pandas, numpy, matplotlib, seaborn, openpyxl, xlrd), using Jupyter notebooks or a script editor, and setting working paths.
 
 ## Files
 
@@ -22,7 +22,7 @@ python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 
 # Install required packages
-pip install pandas numpy matplotlib seaborn openpyxl
+pip install -r requirements.txt   # pandas numpy matplotlib seaborn openpyxl xlrd
 
 # Verify
 import pandas as pd
