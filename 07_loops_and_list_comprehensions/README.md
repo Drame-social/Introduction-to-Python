@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-for loops over column names, computing column-level statistics inside loops, list comprehensions as a concise loop alternative, reading multiple datasets in a loop, and using DataFrame.apply() for row/column operations.
+Python loops and vectorized operations as equivalents of SAS arrays: recoding a missing-value code across many columns, scoring across items, flagging any matching code across columns, and counting non-missing entries.
 
 ## Files
 
@@ -12,19 +12,16 @@ for loops over column names, computing column-level statistics inside loops, lis
 
 ## Datasets Used
 
-mod8_a.csv, flbygroup.csv, screener_data.csv, survey.csv
+mod8_a.csv, mod8_b.csv, mod8_c.csv, mod8_d.csv, flbygroup.csv, screener_data.csv, survey.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-# Loop over columns
-for col in numeric_cols:
-    print(f"{col}: mean={df[col].mean():.2f}")
+for col in var_cols:                                   # ARRAY ... DO i = 1 TO 15
+    mod8_a[col] = mod8_a[col].replace(9, np.nan)
 
-# List comprehension
-means = {col: round(df[col].mean(), 2) for col in numeric_cols}
-
-# Batch read
-datasets = {name: pd.read_csv(f"./data/{name}.csv")
-            for name in file_list}
+mod8_c["LOC"] = mod8_c[loc_cols].isin([1, 2, 6, 7]).any(axis=1).astype(int)
+mod8_d["DRUGS"] = mod8_d[drug_cols].notna().sum(axis=1)
 ```
