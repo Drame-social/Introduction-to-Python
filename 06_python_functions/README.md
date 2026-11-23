@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-String methods (str.upper, str[:n], str.strip, str.match), numeric functions from numpy (round, sqrt, floor, abs), descriptive statistics with describe(), and writing custom functions applied with .apply().
+Character functions (equivalents of SAS COMPRESS, UPCASE, SCAN, SUBSTR, INDEX, COUNTW), numeric functions across columns (MEAN, SUM, N, ABS, INT, SQRT), date parts, and a user-defined function.
 
 ## Files
 
@@ -12,21 +12,15 @@ String methods (str.upper, str[:n], str.strip, str.match), numeric functions fro
 
 ## Datasets Used
 
-patients.csv
+mock_data.csv
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-# String functions
-df["name_upper"] = df["name"].str.upper()
-df["first3"]     = df["name"].str[:3]
-
-# Custom function applied to a column
-def bmi_category(bmi):
-    if pd.isna(bmi): return None
-    elif bmi < 18.5: return "Underweight"
-    elif bmi < 25:   return "Normal"
-    else:            return "Overweight/Obese"
-
-df["bmi_cat"] = df["bmi"].apply(bmi_category)
+mock["phone_digits"] = mock["phone_num"].str.replace(r"\D", "", regex=True)  # COMPRESS
+mock["email_domain"] = mock["email"].str.split("@").str[1]                    # SCAN
+mock["score_mean"]   = mock[score_cols].mean(axis=1)                          # MEAN(of ...)
+mock["score_band"]   = mock["score_mean"].apply(score_band)
 ```
