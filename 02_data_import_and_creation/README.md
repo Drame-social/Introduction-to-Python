@@ -2,29 +2,26 @@
 
 ## Topics Covered
 
-Importing CSV files with pd.read_csv(), reading Excel files with pd.read_excel(), reading delimited text files, stacking datasets with pd.concat(), and merging with DataFrame.merge().
+Importing CSV files with pd.read_csv(), a legacy Excel file with pd.read_excel(), and a space-delimited text file with no header row; creating a small dataset in code; stacking datasets with pd.concat() and flagging their source.
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `02_data_import_and_creation.py` | Import, merge, and stack datasets |
+| `02_data_import_and_creation.py` | Import, create, and stack datasets |
 
 ## Datasets Used
 
-phase1.csv, phase2.csv, cohort1516.csv, cohort1617.csv, labs.csv, RAWDAT1.xls, RAWDATA.TXT
+phase1.csv, phase2.csv, cohort1516.csv, cohort1617.csv, raw/RAWDAT1.xls, raw/RAWDATA.TXT
+
+Derived files are written to `./outputs/`.
 
 ## Key Python Syntax
 
 ```python
-import pandas as pd
+rawdata_txt = pd.read_csv("./data/raw/RAWDATA.TXT", sep=r"\s+", header=None,
+                          names=["studyid", "caco", "age", "exposure"])
 
-# Import CSV
-df = pd.read_csv("./data/phase1.csv")
-
-# Stack datasets
-combined = pd.concat([cohort1516, cohort1617], ignore_index=True)
-
-# Left merge
-merged = final_demo.merge(final_clin, on="studyid", how="left")
+cohort_combined = pd.concat([cohort1516, cohort1617], ignore_index=True)
+phases = pd.concat([phase1.assign(phase=1), phase2.assign(phase=2)], ignore_index=True)
 ```
