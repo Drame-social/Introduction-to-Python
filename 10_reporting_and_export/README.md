@@ -2,7 +2,7 @@
 
 ## Topics Covered
 
-Generating descriptive statistics with describe() and value_counts(), cross-tabulations with pd.crosstab(), exporting multi-sheet Excel workbooks with pd.ExcelWriter, and writing CSVs with to_csv().
+Frequency tables with percentages, grouped descriptive statistics, cross-tabulations with counts and row percentages, and exporting a multi-sheet Excel report and a CSV file.
 
 ## Files
 
@@ -14,16 +14,15 @@ Generating descriptive statistics with describe() and value_counts(), cross-tabu
 
 final_demo.csv, final_clin.csv
 
+Derived files are written to `./outputs/`.
+
 ## Key Python Syntax
 
 ```python
-# Cross-tabulation
-pd.crosstab(df["sex"], df["suppressed"],
-            normalize="index").round(3)
+demo_clin = final_demo.merge(final_clin, on="id", how="left")
+demo_clin.groupby("hlevel")["bleeds"].agg(["count", "mean", "std", "median"])
+pd.crosstab(demo_clin["htype"], demo_clin["hlevel"], normalize="index")
 
-# Multi-sheet Excel export
-with pd.ExcelWriter("outputs/report.xlsx",
-                    engine="openpyxl") as writer:
-    demo.to_excel(writer, sheet_name="Demographics", index=False)
-    clin.to_excel(writer, sheet_name="Clinical",     index=False)
+with pd.ExcelWriter("outputs/clinical_cohort_report.xlsx") as writer:
+    summary_tbl.to_excel(writer, sheet_name="Summary", index=False)
 ```
