@@ -1,58 +1,74 @@
 # =============================================================================
 # Phase 08 — Longitudinal & Repeated Measures
 # Python equivalent of SAS Module 9
+# Data: patients.csv has one row per visit and several visits per patient.
 # Libraries: pandas
 # =============================================================================
-import pandas as pd
 import os
+import pandas as pd
 
 DATA_PATH = "./data"
+OUTPUTS_PATH = "./outputs"
+os.makedirs(OUTPUTS_PATH, exist_ok=True)
 
-mod9   = pd.read_csv(os.path.join(DATA_PATH, "mod9.csv"))
-mod8_c = pd.read_csv(os.path.join(DATA_PATH, "mod8_c.csv"))
-
-# ----------------------------------------------------------------------------
-# 8.1 Sort and lag — equivalent to SAS LAG() / RETAIN
-# ----------------------------------------------------------------------------
-mod9 = mod9.sort_values(["studyid", "visitdate"]).reset_index(drop=True)
-mod9["prev_vl"]     = mod9.groupby("studyid")["vl"].shift(1)
-mod9["vl_change"]   = mod9["vl"] - mod9["prev_vl"]
-mod9["visit_number"]= mod9.groupby("studyid").cumcount() + 1
+patients = pd.read_csv(os.path.join(DATA_PATH, "patients.csv"))
+patients["visdate"] = pd.to_datetime(patients["visdate"], errors="coerce")
 
 # ----------------------------------------------------------------------------
-# 8.2 Group-level summaries — equivalent to PROC MEANS / PROC SUMMARY BY
+# 8.1 Visits per patient — SAS PROC SUMMARY CLASS id; SUM of VISIT=1
 # ----------------------------------------------------------------------------
-patient_summary = mod9.groupby("studyid").agg(
-    n_visits        = ("visitdate", "count"),
-    first_visit     = ("visitdate", "min"),
-    last_visit      = ("visitdate", "max"),
-    mean_vl         = ("vl",        lambda x: round(x.mean(), 1)),
-    min_cd4         = ("cd4",       "min"),
-    max_cd4         = ("cd4",       "max"),
-    ever_suppressed = ("vl",        lambda x: (x < 200).any())
+totvisit = patients.groupby("id").size().rename("totvisit")
+print(f"Patients: {patients['id'].nunique()}  Visits: {len(patients)}")
+print("--- Visits per patient ---")
+print(totvisit.value_counts().sort_index(), "\n")
+
+# ----------------------------------------------------------------------------
+# 8.2 First visit per patient — SAS BY id; IF FIRST.id
+# ----------------------------------------------------------------------------
+patients = patients.sort_values(["id", "visdate"]).reset_index(drop=True)
+first_visit = patients.groupby("id").head(1)
+print("--- Full-time employment at baseline (empft) ---")
+print(first_visit["empft"].value_counts(dropna=False), "\n")
+
+# ----------------------------------------------------------------------------
+# 8.3 Visit number, lag and change — SAS RETAIN / LAG within BY group
+# ----------------------------------------------------------------------------
+patients["visit_number"] = patients.groupby("id").cumcount() + 1
+patients["prev_weight"]  = patients.groupby("id")["weight"].shift(1)
+patients["weight_change"] = patients["weight"] - patients["prev_weight"]
+patients["days_since_prev"] = patients.groupby("id")["visdate"].diff().dt.days
+print(patients[["id", "visdate", "visit_number", "weight",
+                "weight_change", "days_since_prev"]].head(6), "\n")
+
+# ----------------------------------------------------------------------------
+# 8.4 Per-patient summaries merged back to baseline — SAS PROC SUMMARY + MERGE
+# ----------------------------------------------------------------------------
+per_patient = patients.groupby("id").agg(
+    totvisit   = ("visdate", "count"),
+    avgblds    = ("allblds", "mean"),
+    avgjtblds  = ("jtblds", "mean"),
+    everempft  = ("empft", "max"),
 ).reset_index()
-
-print(f"Patients summarized: {len(patient_summary)}")
-
-# ----------------------------------------------------------------------------
-# 8.3 Wide ↔ Long reshape — equivalent to SAS PROC TRANSPOSE
-# ----------------------------------------------------------------------------
-visit_cols = [c for c in mod8_c.columns if c.startswith("visit")]
-id_cols    = [c for c in mod8_c.columns if not c.startswith("visit")]
-
-# Wide → Long
-mod8_c_long = mod8_c.melt(id_vars=id_cols, value_vars=visit_cols,
-                           var_name="visit_num", value_name="result")
-
-# Long → Wide
-mod8_c_wide = mod8_c_long.pivot_table(index=id_cols, columns="visit_num",
-                                       values="result").reset_index()
+baseline = first_visit.merge(per_patient, on="id", how="left")
+print("--- Average bleeds per visit, per patient ---")
+print(per_patient["avgblds"].describe().round(2), "\n")
 
 # ----------------------------------------------------------------------------
-# 8.4 First and last visit per subject
+# 8.5 Wide to long — SAS PROC TRANSPOSE (clot locations in mod8_c)
 # ----------------------------------------------------------------------------
-first_visits = mod9.sort_values("visitdate").groupby("studyid").first().reset_index()
-last_visits  = mod9.sort_values("visitdate").groupby("studyid").last().reset_index()
+mod8_c = pd.read_csv(os.path.join(DATA_PATH, "mod8_c.csv"))
+loc_cols = [c for c in mod8_c.columns if c.startswith("LOCATN")]
+mod8_c_long = (mod8_c.melt(id_vars=["STUDYID", "RELTCLOT"], value_vars=loc_cols,
+                           var_name="position", value_name="location")
+                     .dropna(subset=["location"])
+                     .sort_values(["STUDYID", "position"]))
+print(f"mod8_c wide: {mod8_c.shape} -> long (non-missing): {mod8_c_long.shape}")
 
-patient_summary.to_csv(os.path.join(DATA_PATH, "patient_longitudinal_summary.csv"), index=False)
-mod8_c_long.to_csv(os.path.join(DATA_PATH, "mod8_c_long.csv"), index=False)
+# Long back to wide
+mod8_c_wide = mod8_c_long.pivot(index="STUDYID", columns="position",
+                                values="location").reset_index()
+print(f"Back to wide: {mod8_c_wide.shape}\n")
+
+baseline.to_csv(os.path.join(OUTPUTS_PATH, "patient_baseline_summary.csv"), index=False)
+mod8_c_long.to_csv(os.path.join(OUTPUTS_PATH, "mod8_c_long.csv"), index=False)
+print("Saved outputs/patient_baseline_summary.csv and outputs/mod8_c_long.csv")
